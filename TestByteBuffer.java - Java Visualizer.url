@@ -1,0 +1,6 @@
+[InternetShortcut]
+URL=https://cscircles.cemc.uwaterloo.ca/java_visualize/#code=import+java.nio.ByteBuffer%3B%0Aimport+java.util.Arrays%3B%0A%0Apublic+class+TestByteBuffer%0A%7B%0A+++public+static+void+main(String%5B%5D+args)%0A+++%7B%0A++++++//+float+to+byte%5B%5D%0A++++++byte%5B%5D+b1+%3D+ByteBuffer.allocate(Float.BYTES).putFloat(8765.432F).array()%3B%0A++++++System.out.println(Arrays.toString(+b1+))%3B%0A%0A++++++//+long+to+byte%5B%5D%0A++++++byte%5B%5D+b2+%3D+ByteBuffer.allocate(Long.BYTES).putLong(987654321).array()%3B%0A++++++System.out.println(Arrays.toString(+b2+))%3B%0A%0A++++++//+byte%5B%5D+to+float%0A++++++float+f+%3D+ByteBuffer.wrap(new+byte%5B%5D%7B70,+64,+-26,+-74%7D).getFloat()%3B%0A++++++System.out.println(+f+)%3B%0A%0A++++++//+byte%5B%5D+to+long%0A++++++byte%5B%5D+b3+%3D+%7B1,+55,+105,+35,+-6,+-8,+11,+78%7D%3B%0A++++++long+n+%3D+ByteBuffer.wrap(+b3+).getLong()%3B%0A++++++System.out.println(+n+)%3B%0A+++%7D%0A%7D&mode=
+IDList=
+HotKey=0
+[{000214A0-0000-0000-C000-000000000046}]
+Prop3=19,11
