@@ -302,54 +302,111 @@ After this:
 
 ---
 
-## TCP Flags (Hex + Meaning)
+## TCP Flags + SEQ/ACK Examples (with Hex)
 
-TCP control flags are **single-bit fields** inside the TCP header.
-A TCP segment can combine multiple flags by **bitwise OR / addition** of their hex values.
+TCP segments include:
+- **Flags** (1-bit controls like SYN/ACK/FIN)
+- **SEQ** (Sequence Number): byte index of the first byte in this segment's payload
+- **ACK** (Acknowledgment Number): next byte expected from the other side (valid when ACK flag is set)
 
-### Common Flags Table
+> Note: SYN and FIN each "consume" 1 sequence number even if no data payload is present.
 
-| Flag | Hex | Binary (8-bit) | Meaning (What it indicates) |
-|------|-----|-----------------|-----------------------------|
-| FIN  | `0x01` | `00000001` | **Finish**: sender wants to close the connection cleanly |
-| SYN  | `0x02` | `00000010` | **Synchronize**: used to start a connection and exchange initial sequence numbers |
-| RST  | `0x04` | `00000100` | **Reset**: aborts the connection immediately (often used for errors / closed ports) |
-| PSH  | `0x08` | `00001000` | **Push**: tells receiver to deliver data to the application ASAP (don’t wait to buffer) |
-| ACK  | `0x10` | `00010000` | **Acknowledge**: ACK field is valid; confirms receipt of bytes |
-| URG  | `0x20` | `00100000` | **Urgent**: urgent pointer field is valid (rare in modern usage) |
+---
+
+### Example: 3-Way Handshake (Connection Setup)
+
+Assume:
+- Client chooses initial sequence number **C = 1000**
+- Server chooses initial sequence number **S = 5000**
+
+Hex conversions (32-bit):
+- `1000₁₀ = 0x000003E8`
+- `1001₁₀ = 0x000003E9`
+- `5000₁₀ = 0x00001388`
+- `5001₁₀ = 0x00001389`
+
+---
+
+#### 1) Client → Server: SYN
+- Flags: `SYN`
+- Flags Hex: `0x02` (binary `00000010`)
+- SEQ (dec): `1000`
+- SEQ (hex, 32-bit): `0x000003E8`
+- ACK: not valid (ACK flag not set)
+
+Meaning: "Start connection. My ISN is 1000."
+
+---
+
+#### 2) Server → Client: SYN-ACK
+- Flags: `SYN + ACK`
+- Flags Hex: `0x12` (binary `00010010`)
+- SEQ (dec): `5000`
+- SEQ (hex, 32-bit): `0x00001388`
+- ACK (dec): `1001`  (acknowledges client's SYN: 1000 + 1)
+- ACK (hex, 32-bit): `0x000003E9`
+
+Meaning: "I accept. My ISN is 5000. I received your SYN; send 1001 next."
+
+---
+
+#### 3) Client → Server: ACK
+- Flags: `ACK`
+- Flags Hex: `0x10` (binary `00010000`)
+- SEQ (dec): `1001`  (client moved past SYN)
+- SEQ (hex, 32-bit): `0x000003E9`
+- ACK (dec): `5001`  (acknowledges server's SYN: 5000 + 1)
+- ACK (hex, 32-bit): `0x00001389`
+
+Meaning: "Connection established. I received your SYN; send 5001 next."
+
+---
+
+### After Handshake (First Data Example)
+
+If client now sends `"Hello"` (5 bytes) to the server:
+
+Hex conversions:
+- `1006₁₀ = 0x000003EE`
+
+#### Client → Server: ACK + Data ("Hello")
+- Flags: `ACK`
+- Flags Hex: `0x10`
+- SEQ (dec): `1001`
+- SEQ (hex, 32-bit): `0x000003E9`
+- Payload Length: `5 bytes` → bytes `1001..1005`
+- ACK (dec): `5001`
+- ACK (hex, 32-bit): `0x00001389`
+
+Server acknowledgment:
+
+#### Server → Client: ACK
+- Flags: `ACK`
+- Flags Hex: `0x10`
+- SEQ (dec): `5001` (assuming server sends no payload yet)
+- SEQ (hex, 32-bit): `0x00001389`
+- ACK (dec): `1006` (1001 + 5)
+- ACK (hex, 32-bit): `0x000003EE`
+
+Meaning: "I received bytes through 1005; send 1006 next."
+
+---
+
+## Common TCP Flag Hex Values (Reference)
+
+| Flag | Hex | Binary (8-bit) | Meaning |
+|------|-----|-----------------|---------|
+| FIN  | `0x01` | `00000001` | Finish/close connection cleanly |
+| SYN  | `0x02` | `00000010` | Start connection / sync sequence numbers |
+| RST  | `0x04` | `00000100` | Abort/reset connection |
+| PSH  | `0x08` | `00001000` | Push data to app ASAP |
+| ACK  | `0x10` | `00010000` | ACK field is valid |
+| URG  | `0x20` | `00100000` | Urgent pointer is valid |
 
 ### Common Combinations
-
-#### SYN (Client → Server)
-- Flags: `SYN`
-- Hex: `0x02`
-- Meaning: "I want to start a TCP connection. Here is my initial sequence number."
-
-#### SYN-ACK (Server → Client)
-- Flags: `SYN + ACK`
-- Hex: `0x12` (`0x10 + 0x02`)
-- Meaning: "I accept. Here is my sequence number, and I acknowledge yours."
-
-#### ACK (Client → Server)
-- Flags: `ACK`
-- Hex: `0x10`
-- Meaning: "Acknowledgment is valid. Connection is established (or data was received)."
-
-#### FIN-ACK (Closing handshake)
-- Flags: `FIN + ACK`
-- Hex: `0x11` (`0x10 + 0x01`)
-- Meaning: "I’m done sending data and I acknowledge what you sent. Begin closing."
-
-#### RST-ACK (Abort)
-- Flags: `RST + ACK`
-- Hex: `0x14` (`0x10 + 0x04`)
-- Meaning: "Stop. Connection is invalid/aborted, and I acknowledge what was seen."
-
-### Notes
-- Flags are stored as **bits**, so multiple flags can be set at once.
-- Example: `SYN + ACK = 0x02 + 0x10 = 0x12`.
-- These flags are part of how TCP performs reliable connection setup, data transfer control, and teardown.
-
+- `SYN + ACK` = `0x12` (`0x02 + 0x10`)
+- `FIN + ACK` = `0x11` (`0x01 + 0x10`)
+- `RST + ACK` = `0x14` (`0x04 + 0x10`)
 ## 🎯 Important Clarifications
 
 ### ✔ Sequence numbers count bytes
