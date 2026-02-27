@@ -1,0 +1,12 @@
+
+Server log of 3 messages.
+
+10110000 (48 characters)
+3{^8V=>V8ZC >p[zHa51&[]e82<,wwAb^Y^,*@*X8qGyixz:
+
+11110010 (114 characters)
+zE%=#Y7|}xiS$a1fh_3n%CxL}~I~C8O%}(?j,bdIeMrDC5uh5Ih4:x6:Xo\fpj{E9ae\JMK+[4H%i%,?.X562Y$z9<_f@vnm-~pQ9V8 bA:*48)u%8
+
+10000000
+
+The server wrote 165 bytes to standard output.
