@@ -302,35 +302,53 @@ After this:
 
 ---
 
-## TCP Flag Hex Values (Common)
+## TCP Flags (Hex + Meaning)
 
-### SYN
+TCP control flags are **single-bit fields** inside the TCP header.
+A TCP segment can combine multiple flags by **bitwise OR / addition** of their hex values.
+
+### Common Flags Table
+
+| Flag | Hex | Binary (8-bit) | Meaning (What it indicates) |
+|------|-----|-----------------|-----------------------------|
+| FIN  | `0x01` | `00000001` | **Finish**: sender wants to close the connection cleanly |
+| SYN  | `0x02` | `00000010` | **Synchronize**: used to start a connection and exchange initial sequence numbers |
+| RST  | `0x04` | `00000100` | **Reset**: aborts the connection immediately (often used for errors / closed ports) |
+| PSH  | `0x08` | `00001000` | **Push**: tells receiver to deliver data to the application ASAP (don’t wait to buffer) |
+| ACK  | `0x10` | `00010000` | **Acknowledge**: ACK field is valid; confirms receipt of bytes |
+| URG  | `0x20` | `00100000` | **Urgent**: urgent pointer field is valid (rare in modern usage) |
+
+### Common Combinations
+
+#### SYN (Client → Server)
+- Flags: `SYN`
 - Hex: `0x02`
-- Binary: `00000010`
+- Meaning: "I want to start a TCP connection. Here is my initial sequence number."
 
-### ACK
+#### SYN-ACK (Server → Client)
+- Flags: `SYN + ACK`
+- Hex: `0x12` (`0x10 + 0x02`)
+- Meaning: "I accept. Here is my sequence number, and I acknowledge yours."
+
+#### ACK (Client → Server)
+- Flags: `ACK`
 - Hex: `0x10`
-- Binary: `00010000`
+- Meaning: "Acknowledgment is valid. Connection is established (or data was received)."
 
-### SYN + ACK
-- Hex: `0x12`
-- Binary: `00010010`
+#### FIN-ACK (Closing handshake)
+- Flags: `FIN + ACK`
+- Hex: `0x11` (`0x10 + 0x01`)
+- Meaning: "I’m done sending data and I acknowledge what you sent. Begin closing."
 
-### FIN
-- Hex: `0x01`
-- Binary: `00000001`
+#### RST-ACK (Abort)
+- Flags: `RST + ACK`
+- Hex: `0x14` (`0x10 + 0x04`)
+- Meaning: "Stop. Connection is invalid/aborted, and I acknowledge what was seen."
 
-### RST
-- Hex: `0x04`
-- Binary: `00000100`
-
-### PSH
-- Hex: `0x08`
-- Binary: `00001000`
-
-### URG
-- Hex: `0x20`
-- Binary: `00100000`
+### Notes
+- Flags are stored as **bits**, so multiple flags can be set at once.
+- Example: `SYN + ACK = 0x02 + 0x10 = 0x12`.
+- These flags are part of how TCP performs reliable connection setup, data transfer control, and teardown.
 
 ## 🎯 Important Clarifications
 
