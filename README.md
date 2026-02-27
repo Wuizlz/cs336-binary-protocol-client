@@ -302,6 +302,36 @@ After this:
 
 ---
 
+## TCP Flag Hex Values (Common)
+
+### SYN
+- Hex: `0x02`
+- Binary: `00000010`
+
+### ACK
+- Hex: `0x10`
+- Binary: `00010000`
+
+### SYN + ACK
+- Hex: `0x12`
+- Binary: `00010010`
+
+### FIN
+- Hex: `0x01`
+- Binary: `00000001`
+
+### RST
+- Hex: `0x04`
+- Binary: `00000100`
+
+### PSH
+- Hex: `0x08`
+- Binary: `00001000`
+
+### URG
+- Hex: `0x20`
+- Binary: `00100000`
+
 ## 🎯 Important Clarifications
 
 ### ✔ Sequence numbers count bytes
