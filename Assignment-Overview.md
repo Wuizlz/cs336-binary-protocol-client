@@ -199,7 +199,7 @@ Binary protocols rely on:
 
 This assignment simulates how real network protocols (like TCP) interpret structured binary data.
 
-# CS336 HW3 — Binary Protocol Parsing Notes (Complete)
+# CS336 HW3 — Binary Protocol Parsing Notes (Message)
 
 These notes explain in detail how to correctly read and interpret the server’s byte stream for the HW3 client.
 
