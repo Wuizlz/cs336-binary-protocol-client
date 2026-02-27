@@ -247,78 +247,86 @@ Both require:
 - Reading raw bytes
 - Interpreting them based on a defined bit layout
 
-📡 TCP Header & 3-Way Handshake Notes
+# 📡 TCP Header & 3-Way Handshake Notes
 
 These notes summarize key TCP concepts reviewed while studying packet structure, handshake mechanics, and header parsing.
 
-🧱 TCP Header Structure
+---
+
+# 🧱 TCP Header Structure
 
 Every TCP segment contains:
 
 [TCP Header][Payload (optional)]
-📦 Minimum TCP Header (20 bytes)
-Field	Size
-Source Port	2 bytes
-Destination Port	2 bytes
-Sequence Number	4 bytes
-Acknowledgment Number	4 bytes
-Data Offset + Reserved + Flags	2 bytes
-Window Size	2 bytes
-Checksum	2 bytes
-Urgent Pointer	2 bytes
+
+## 📦 Minimum TCP Header (20 bytes)
+
+| Field | Size |
+|-------|------|
+| Source Port | 2 bytes |
+| Destination Port | 2 bytes |
+| Sequence Number | 4 bytes |
+| Acknowledgment Number | 4 bytes |
+| Data Offset + Reserved + Flags | 2 bytes |
+| Window Size | 2 bytes |
+| Checksum | 2 bytes |
+| Urgent Pointer | 2 bytes |
 
 After this may come:
 
-Options (optional)
-
-Padding (if required)
+- Options (optional)
+- Padding (if required)
 
 Then:
 
-Payload / Data
+- Payload / Data
 
-🔢 Sequence & Acknowledgment Numbers
+---
+
+# 🔢 Sequence & Acknowledgment Numbers
 
 TCP treats communication as a continuous stream of bytes.
 
-Each byte is numbered.
+- Each byte is numbered.
+- Sequence numbers identify the first byte in a segment.
+- Acknowledgment numbers identify the next expected byte.
 
-Sequence numbers identify the first byte in a segment.
-
-Acknowledgment numbers identify the next expected byte.
-
-Example
+### Example
 
 If:
 
-SEQ = 1001
-Segment length = 100 bytes
+SEQ = 1001  
+Segment length = 100 bytes  
 
 Then the segment contains:
 
-Bytes 1001 through 1100
+Bytes 1001 through 1100  
 
 If the receiver sends:
 
-ACK = 1101
+ACK = 1101  
 
 It means:
 
 All bytes up to 1100 were received successfully.
-🤝 3-Way Handshake
+
+---
+
+# 🤝 3-Way Handshake
 
 Each side chooses a random Initial Sequence Number (ISN).
 
-🔵 Step 1 — Client Sends SYN
+---
+
+## 🔵 Step 1 — Client Sends SYN
 
 Client selects:
 
-Source Port: 51515
+- Source Port: 51515
+- Destination Port: 443
+- Client ISN: 1000
 
-Destination Port: 443
-
-Client ISN: 1000
-
+```
 Source Port:        51515
 Destination Port:   443
 Sequence Number:    1000
@@ -327,19 +335,21 @@ Data Offset:        5   (20 bytes)
 Flags:              SYN
 Window Size:        64240
 Payload:            none
+```
 
-ACK field exists but is ignored because ACK flag is not set.
+- ACK field exists but is ignored because ACK flag is not set.
+- SYN consumes one sequence number.
 
-SYN consumes one sequence number.
+---
 
-🔴 Step 2 — Server Sends SYN+ACK
+## 🔴 Step 2 — Server Sends SYN+ACK
 
 Server selects:
 
-Server ISN: 5000
+- Server ISN: 5000
+- ACK = 1001 (client ISN + 1)
 
-ACK = 1001 (client ISN + 1)
-
+```
 Source Port:        443
 Destination Port:   51515
 Sequence Number:    5000
@@ -348,92 +358,105 @@ Data Offset:        5
 Flags:              SYN, ACK
 Window Size:        65535
 Payload:            none
-🔵 Step 3 — Client Sends Final ACK
+```
+
+---
+
+## 🔵 Step 3 — Client Sends Final ACK
+
+```
 Source Port:        51515
 Destination Port:   443
 Sequence Number:    1001
 Acknowledgment:     5001
 Flags:              ACK
 Payload:            none
+```
 
 Connection is now established.
 
-📏 Data Offset
+---
+
+# 📏 Data Offset
 
 Data Offset indicates TCP header length.
 
-Field size: 4 bits
+- Field size: 4 bits
+- Interpreted as: number of 32-bit words (4-byte chunks)
 
-Interpreted as: number of 32-bit words (4-byte chunks)
+### Formula
 
-Formula
 Header Length = DataOffset × 4 bytes
-Examples
-Data Offset	Header Length
-5	20 bytes
-8	32 bytes
-Why it exists
 
-TCP headers can grow if options are included.
+### Examples
+
+| Data Offset | Header Length |
+|-------------|---------------|
+| 5 | 20 bytes |
+| 8 | 32 bytes |
+
 Data Offset tells the receiver where the payload begins.
 
 Payload Start Byte = DataOffset × 4
-🧩 Options & Padding
-Options
+
+---
+
+# 🧩 Options & Padding
+
+## Options
 
 Optional TCP extensions negotiated during connection setup.
 
 Common examples:
 
-MSS (Maximum Segment Size)
-
-Window Scaling
-
-SACK
-
-Timestamps
+- MSS (Maximum Segment Size)
+- Window Scaling
+- SACK
+- Timestamps
 
 Options increase header size beyond 20 bytes.
 
-Padding
+---
+
+## Padding
 
 TCP headers must be divisible by 4 bytes.
 
 If options cause misalignment:
 
-Base header = 20 bytes
-Options = 10 bytes
-Total = 30 bytes (invalid)
-Padding = 2 bytes
-Final header = 32 bytes
-Data Offset = 8
-🚦 Flags
+Base header = 20 bytes  
+Options = 10 bytes  
+Total = 30 bytes (invalid)  
+Padding = 2 bytes  
+Final header = 32 bytes  
+Data Offset = 8  
+
+---
+
+# 🚦 Flags
 
 Flags are individual control bits.
 
 Common flags:
 
-SYN — initiate connection
-
-ACK — acknowledgment field valid
-
-FIN — close connection
-
-RST — reset connection
-
-PSH — push data to application
-
-URG — urgent pointer valid
-
-CWR / ECE / NS — congestion control
+- SYN — initiate connection
+- ACK — acknowledgment field valid
+- FIN — close connection
+- RST — reset connection
+- PSH — push data to application
+- URG — urgent pointer valid
+- CWR / ECE / NS — congestion control
 
 Multiple flags can be set simultaneously.
 
 Example:
 
-SYN + ACK = 0x12
-Binary: 00010010
-🪟 Window Size
+SYN + ACK = 0x12  
+Binary: 00010010  
+
+---
+
+# 🪟 Window Size
 
 Window is used for flow control.
 
@@ -441,8 +464,8 @@ It tells the sender how many bytes can be sent before waiting.
 
 Example:
 
-ACK = 1001
-Window = 5000
+ACK = 1001  
+Window = 5000  
 
 Meaning:
 
@@ -450,40 +473,41 @@ Bytes 1001 through 6000 may be sent.
 
 If:
 
-Window = 0
+Window = 0  
 
 Sender must pause transmission.
 
-✅ Checksum
+---
+
+# ✅ Checksum
 
 Checksum provides error detection.
 
 It is computed over:
 
-TCP header
-
-TCP payload
-
-Pseudo-header (IP data)
+- TCP header
+- TCP payload
+- Pseudo-header (IP data)
 
 Receiver recomputes checksum:
 
-If match → valid
-
-If mismatch → segment discarded
+- If match → valid
+- If mismatch → segment discarded
 
 TCP reliability handles retransmission.
 
 Checksum performs validation, not sanitization.
 
-🚨 Urgent Pointer
+---
+
+# 🚨 Urgent Pointer
 
 Only valid if URG flag = 1.
 
 If:
 
-SEQ = S
-UrgentPointer = k
+SEQ = S  
+UrgentPointer = k  
 
 Then:
 
@@ -491,28 +515,21 @@ Bytes S through S + k − 1 are urgent.
 
 Rarely used in modern networking.
 
-🧠 Core Model
+---
+
+# 🧠 Core Model
 
 Each TCP segment:
 
-Builds full header.
+1. Builds full header.
+2. Fills fields based on connection state.
+3. Sends packet.
+4. Receiver parses header.
+5. Updates state.
+6. Responds.
 
-Fills fields based on connection state.
-
-Sends packet.
-
-Receiver parses header.
-
-Updates state.
-
-Responds.
-
-Handshake = 3 full TCP packets.
-
-Data Offset always exists.
-
-Options may extend header.
-
-Window controls flow.
-
-Checksum validates integrity.
+- Handshake = 3 full TCP packets.
+- Data Offset always exists.
+- Options may extend header.
+- Window controls flow.
+- Checksum validates integrity.
