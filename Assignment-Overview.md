@@ -198,3 +198,352 @@ Binary protocols rely on:
 - Stream-based processing
 
 This assignment simulates how real network protocols (like TCP) interpret structured binary data.
+
+# CS336 HW3 — Binary Protocol Parsing Notes (Complete)
+
+These notes explain in detail how to correctly read and interpret the server’s byte stream for the HW3 client.
+
+The most important idea:
+
+> You are NOT reading “text” or “numbers” directly.  
+> You are reading a structured binary protocol where the first byte of each message is a HEADER that tells you what comes next.
+
+---
+
+# 1) Streams, Bytes, and EOF in Java
+
+## InputStream.read()
+
+```java
+int b = in.read();
+```
+
+`read()` returns an **int**, not a byte, because it must represent:
+
+- A valid byte value: `0–255`
+- EOF: `-1`
+
+### Important distinctions
+
+| Value | Meaning |
+|--------|----------|
+| -1 | End of file (stream ended unexpectedly or naturally) |
+| 0x80 (128) | End-of-Transmission (protocol-defined message) |
+
+⚠️ `0x80` is NOT EOF.  
+It is a real byte sent by the server.
+
+---
+
+# 2) The Stream Structure
+
+The server sends a continuous stream of bytes:
+
+```
+[header][body][header][body][header][body]...
+```
+
+Each message:
+- starts with exactly **1 header byte**
+- is followed by some number of body bytes
+- ends when the next header begins
+
+---
+
+# 3) Header Byte Structure (8 Bits)
+
+Each message begins with 1 byte:
+
+```
+bit7 bit6 bit5 bit4 bit3 bit2 bit1 bit0
+MSB                                LSB
+```
+
+- MSB (bit7) = Most Significant Bit = 128 = `0x80`
+- LSB (bit0) = Least Significant Bit = 1
+
+---
+
+# 4) How We Read Bits (Masking)
+
+We never convert to strings like `"10101010"` to compute logic.
+
+We use **bit masks**.
+
+## Check MSB
+
+```java
+boolean msbIs1 = (b & 0x80) != 0;
+```
+
+- `0x80 = 10000000`
+- If result ≠ 0 → MSB is 1
+
+## Extract lower 7 bits
+
+```java
+int lower = b & 0x7F;
+```
+
+- `0x7F = 01111111`
+- Clears MSB
+- Keeps bits 0–6
+
+---
+
+# 5) TEXT Messages (MSB = 1, but not 0x80)
+
+Header format:
+
+```
+1 LLLLLLL
+```
+
+- MSB = 1 → TEXT message
+- Lower 7 bits = LENGTH (in BYTES)
+
+Important:
+
+> The 7 bits are NOT the text.
+> They are the number of ASCII bytes that follow.
+
+## Extracting the length
+
+```java
+int length = b & 0x7F;
+```
+
+Length is a normal decimal integer.
+
+If lower bits = `01111100` → length = 124.
+
+That means:
+
+- Read next 124 BYTES
+- Each byte is one ASCII character
+- Print each character immediately
+
+---
+
+# 6) End-of-Transmission (EOT)
+
+`0x80 = 10000000₂ = 128`
+
+This header means:
+
+- No body
+- No more messages
+- Server will close output
+
+When you read `0x80`:
+- Count that byte
+- Stop parsing
+- Print total bytes received
+- Exit cleanly
+
+Do NOT treat it as a text message of length 0.
+
+---
+
+# 7) NUMERIC Messages (MSB = 0)
+
+Header format:
+
+```
+0 b6 b5 b4 b3 b2 b1 b0
+```
+
+- MSB = 0 → Numeric message
+- Lower 7 bits form a bitfield
+
+Each bit describes the next value:
+
+- bit = 0 → next value is FLOAT (4 bytes)
+- bit = 1 → next value is LONG (8 bytes)
+
+## Reading order
+
+Bits are read from **LSB to MSB**:
+
+```java
+for (int i = 0; i < 7; i++) {
+    int bit = (bitfield >> i) & 1;
+}
+```
+
+Bit 0 first, then bit 1, etc.
+
+---
+
+# 8) Example: Header = 10110000
+
+Binary:
+
+```
+10110000
+```
+
+Decimal:
+- 176
+
+Step 1: Not EOF
+- 176 != -1
+
+Step 2: Not EOT
+- 176 != 0x80
+
+Step 3: MSB check
+
+```
+10110000
+10000000
+---------
+10000000  (non-zero)
+```
+
+MSB = 1 → TEXT
+
+Step 4: Extract length
+
+```
+10110000
+01111111
+---------
+00110000
+```
+
+`00110000₂ = 48`
+
+So this means:
+
+> TEXT message of length 48 bytes
+
+The client must:
+- read next 48 bytes
+- print them as ASCII
+- then read the next header
+
+---
+
+# 9) Why Length is in BYTES (Not Bits)
+
+Streams operate in BYTES.
+
+- `read()` reads 1 byte.
+- ASCII characters are 1 byte.
+- Protocol lengths are in bytes.
+
+If length = 124:
+- Read 124 bytes.
+- That equals 124 × 8 = 992 bits of actual data.
+- But you never read bits individually — only bytes.
+
+---
+
+# 10) Why Masking Works (Deep Explanation)
+
+When you do:
+
+```java
+b & 0x80
+```
+
+The CPU does NOT convert to binary strings.
+
+It already stores numbers in binary internally.
+
+Example:
+
+If `b = 252`
+
+Binary:
+```
+11111100
+```
+
+Mask:
+```
+10000000
+```
+
+AND:
+```
+10000000
+```
+
+Non-zero → MSB = 1.
+
+The CPU directly performs bitwise logic on stored bits.
+
+---
+
+# 11) Clean Loop Structure
+
+Outer loop:
+
+```java
+while ((b = in.read()) != -1) {
+    byteCount++;
+
+    if (b == 0x80) {
+        break;
+    }
+
+    if ((b & 0x80) != 0) {
+        // TEXT branch
+    } else {
+        // NUMERIC branch
+    }
+}
+```
+
+Important:
+
+- Increment byte count for every successful read.
+- If `-1` occurs before EOT → unexpected EOF.
+- `0x80` is counted, then exit cleanly.
+
+---
+
+# 12) Unexpected EOF
+
+If you are expecting more bytes (based on length or numeric bitfield) and `read()` returns `-1`:
+
+- Print error message
+- Print total bytes received
+- Exit cleanly
+
+Never crash.
+
+---
+
+# 13) Core Mental Model
+
+You are building a STREAM PARSER.
+
+Each header byte:
+- tells you the type of message
+- tells you how many bytes follow
+- tells you how to interpret those bytes
+
+You:
+1. Read header
+2. Interpret header
+3. Read exactly what header specifies
+4. Repeat
+
+This is exactly how real protocols (like TCP/IP headers) work.
+
+---
+
+# Final Key Takeaways
+
+- Streams are byte-based.
+- Header byte is metadata, not content.
+- MSB determines message type.
+- Lower 7 bits determine structure.
+- Masking extracts bits safely.
+- EOT is a real byte (0x80), not EOF.
+- Parsing is incremental and structured.
+
+You are now thinking like a protocol engineer.
